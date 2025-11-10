@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode berbasis class */
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* === Core Colors (from your :root) === */
+  --color-background: hsl(220 17% 7%);
+  --color-foreground: hsl(210 40% 98%);
+
+  --color-card: hsl(220 15% 10%);
+  --color-card-foreground: hsl(210 40% 98%);
+
+  --color-popover: hsl(220 15% 10%);
+  --color-popover-foreground: hsl(210 40% 98%);
+
+  --color-primary: hsl(142 76% 36%);
+  --color-primary-foreground: hsl(144 61% 98%);
+
+  --color-secondary: hsl(217 33% 17%);
+  --color-secondary-foreground: hsl(210 40% 98%);
+
+  --color-muted: hsl(217 33% 17%);
+  --color-muted-foreground: hsl(215 20% 65%);
+
+  --color-accent: hsl(45 93% 47%);
+  --color-accent-foreground: hsl(26 83% 14%);
+
+  --color-destructive: hsl(0 63% 31%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-border: hsl(217 33% 17%);
+  --color-input: hsl(217 33% 17%);
+  --color-ring: hsl(142 76% 36%);
+
+  /* Radius token (pakai via rounded-[--radius]) */
+  --radius: 0.5rem;
+
+  /* Extra tokens dari setup-mu */
+  --color-quest: hsl(45 93% 47%);
+  --color-quest-foreground: hsl(26 83% 14%);
+
+  --color-success: hsl(142 76% 36%);
+  --color-error: hsl(0 72% 51%);
+
+  /* Sidebar tokens */
+  --color-sidebar-background: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
+  --color-sidebar-primary: hsl(240 5.9% 10%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: hsl(240 4.8% 95.9%);
+  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --color-sidebar-border: hsl(220 13% 91%);
+  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+/* DARK MODE override (nilai sama seperti root-mu) */
+.dark {
+  --color-background: hsl(220 17% 7%);
+  --color-foreground: hsl(210 40% 98%);
+
+  --color-card: hsl(220 15% 10%);
+  --color-card-foreground: hsl(210 40% 98%);
+
+  --color-popover: hsl(220 15% 10%);
+  --color-popover-foreground: hsl(210 40% 98%);
+
+  --color-primary: hsl(142 76% 36%);
+  --color-primary-foreground: hsl(144 61% 98%);
+
+  --color-secondary: hsl(217 33% 17%);
+  --color-secondary-foreground: hsl(210 40% 98%);
+
+  --color-muted: hsl(217 33% 17%);
+  --color-muted-foreground: hsl(215 20% 65%);
+
+  --color-accent: hsl(45 93% 47%);
+  --color-accent-foreground: hsl(26 83% 14%);
+
+  --color-destructive: hsl(0 63% 31%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-border: hsl(217 33% 17%);
+  --color-input: hsl(217 33% 17%);
+  --color-ring: hsl(142 76% 36%);
+
+  --color-quest: hsl(45 93% 47%);
+  --color-quest-foreground: hsl(26 83% 14%);
+
+  --color-success: hsl(142 76% 36%);
+  --color-error: hsl(0 72% 51%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
