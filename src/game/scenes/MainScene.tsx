@@ -90,19 +90,48 @@ export class MainScene extends Phaser.Scene {
       15
     );
 
-    //=== NPC ORACLE IDLE (frames: 000..017) ===//
-    this.loadPngSequence(
-      "oracle_idle",
-      "/assets/npc/oracle/0_Dark_Oracle_Idle_",
-      0,
-      17
-    );
+    // ===============================================
+    // LOAD NPC BERDASARKAN LEVEL
+    // ===============================================
+    // [ADD] Preload SEMUA NPC idle
+    for (const npc of this.NPC_LIST) {
+      this.loadPngSequence(`${npc.name}_idle`, npc.folder, 0, npc.last);
+    }
 
     // Asset lain tetap dipakai
     this.createDoorGraphic();
     this.createPortalGraphic();
     this.createGroundGraphic();
   }
+
+  //=== NPC LIST PER LEVEL ===//
+  NPC_LIST = [
+    {
+      name: "oracle",
+      folder: "/assets/npc/oracle/0_Dark_Oracle_Idle Blinking_",
+      last: 17,
+    },
+    {
+      name: "golem",
+      folder: "/assets/npc/golem/0_Golem_Idle Blinking_",
+      last: 17,
+    },
+    {
+      name: "blacksmith",
+      folder: "/assets/npc/blacksmith/0_Blacksmith_Idle Blinking_",
+      last: 29,
+    },
+    {
+      name: "sage",
+      folder: "/assets/npc/sage/0_Sage_Idle Blinking_",
+      last: 29,
+    },
+    {
+      name: "valkyrie",
+      folder: "/assets/npc/valkyrie/0_Valkyrie_Idle Blinking_",
+      last: 17,
+    },
+  ];
 
   private createDoorGraphic() {
     const graphics = this.add.graphics();
@@ -253,15 +282,20 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    //=== NPC ANIMATION: Dark Oracle Idle ===//
-    this.anims.create({
-      key: "oracle_idle_anim",
-      frames: Array.from({ length: 18 }).map((_, i) => ({
-        key: `oracle_idle_${String(i).padStart(3, "0")}`,
-      })),
-      frameRate: 6,
-      repeat: -1,
-    });
+    // ===============================================
+    // NPC ANIMATION (dynamic)
+    // ===============================================
+    for (const npc of this.NPC_LIST) {
+      const count = npc.last + 1; // karena file 0..last
+      this.anims.create({
+        key: `${npc.name}_idle_anim`,
+        frames: Array.from({ length: count }).map((_, i) => ({
+          key: `${npc.name}_idle_${String(i).padStart(3, "0")}`,
+        })),
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
   }
 
   private createLevel() {
@@ -308,8 +342,17 @@ export class MainScene extends Phaser.Scene {
 
     // Create NPC
     const npcPos = this.getNPCPosition(currentLevel);
-    this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "oracle_idle_000");
-    this.npc.play("oracle_idle_anim");
+    // this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "oracle_idle_000");
+    // this.npc.play("oracle_idle_anim");
+    const npcData = this.NPC_LIST[currentLevel - 1];
+
+    this.npc = this.physics.add.sprite(
+      npcPos.x,
+      npcPos.y,
+      `${npcData.name}_idle_000`
+    );
+    this.npc.play(`${npcData.name}_idle_anim`);
+
     this.npc.setDisplaySize(128, 128);
     {
       const body = this.npc.body as Phaser.Physics.Arcade.Body;
