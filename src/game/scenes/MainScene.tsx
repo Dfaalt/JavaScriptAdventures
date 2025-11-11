@@ -64,23 +64,44 @@ export class MainScene extends Phaser.Scene {
       0,
       19
     );
+    // IDLE sequences (contoh 0..11 = 12 frame)
+    this.loadPngSequence(
+      "viking_back_idle",
+      "/assets/characters/viking/Back - Idle_",
+      0,
+      15
+    );
+    this.loadPngSequence(
+      "viking_front_idle",
+      "/assets/characters/viking/Front - Idle_",
+      0,
+      15
+    );
+    this.loadPngSequence(
+      "viking_left_idle",
+      "/assets/characters/viking/Left - Idle Blinking_",
+      0,
+      15
+    );
+    this.loadPngSequence(
+      "viking_right_idle",
+      "/assets/characters/viking/Right - Idle Blinking_",
+      0,
+      15
+    );
+
+    //=== NPC ORACLE IDLE (frames: 000..017) ===//
+    this.loadPngSequence(
+      "oracle_idle",
+      "/assets/npc/oracle/0_Dark_Oracle_Idle_",
+      0,
+      17
+    );
 
     // Asset lain tetap dipakai
-    this.createNPCGraphic();
     this.createDoorGraphic();
     this.createPortalGraphic();
     this.createGroundGraphic();
-  }
-
-  private createNPCGraphic() {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0xffaa00, 1);
-    graphics.fillCircle(16, 16, 16);
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillCircle(12, 12, 4);
-    graphics.fillCircle(20, 12, 4);
-    graphics.generateTexture("npc", 32, 32);
-    graphics.destroy();
   }
 
   private createDoorGraphic() {
@@ -133,13 +154,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
-    this.createLevel();
     this.setupControls();
     this.setupStoreSubscription();
-
     // [NEW] definisi animasi karakter (setelah level ada)
     this.definePlayerAnimations();
-
+    this.createLevel();
     // Recompute posisi layar NPC saat canvas di-resize
     this.scale.on("resize", () => {
       if (useGameStore.getState().showDialog) {
@@ -153,7 +172,7 @@ export class MainScene extends Phaser.Scene {
     // walk back (menghadap atas) ✅ sudah ada
     this.anims.create({
       key: "walk_back",
-      frames: Array.from({ length: 19 }).map((_, i) => {
+      frames: Array.from({ length: 20 }).map((_, i) => {
         const num = String(i).padStart(3, "0");
         return { key: `viking_back_walk_${num}` };
       }),
@@ -161,17 +180,20 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
+    // === IDLE BACK ===
     this.anims.create({
       key: "idle_back",
-      frames: [{ key: "viking_back_walk_000" }],
-      frameRate: 1,
+      frames: Array.from({ length: 12 }).map((_, i) => ({
+        key: `viking_back_idle_${String(i).padStart(3, "0")}`,
+      })),
+      frameRate: 6,
       repeat: -1,
     });
 
     // [NEW] walk front (menghadap bawah)
     this.anims.create({
       key: "walk_front",
-      frames: Array.from({ length: 19 }).map((_, i) => {
+      frames: Array.from({ length: 20 }).map((_, i) => {
         const num = String(i).padStart(3, "0");
         return { key: `viking_front_walk_${num}` };
       }),
@@ -179,17 +201,20 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // [NEW] idle front
+    // === IDLE FRONT ===
     this.anims.create({
       key: "idle_front",
-      frames: [{ key: "viking_front_walk_000" }],
-      frameRate: 1,
+      frames: Array.from({ length: 12 }).map((_, i) => ({
+        key: `viking_front_idle_${String(i).padStart(3, "0")}`,
+      })),
+      frameRate: 6,
       repeat: -1,
     });
+
     // [NEW] walk left
     this.anims.create({
       key: "walk_left",
-      frames: Array.from({ length: 19 }).map((_, i) => {
+      frames: Array.from({ length: 20 }).map((_, i) => {
         const num = String(i).padStart(3, "0");
         return { key: `viking_left_walk_${num}` };
       }),
@@ -197,18 +222,20 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // [NEW] idle left
+    // === IDLE LEFT ===
     this.anims.create({
       key: "idle_left",
-      frames: [{ key: "viking_left_walk_000" }],
-      frameRate: 1,
+      frames: Array.from({ length: 12 }).map((_, i) => ({
+        key: `viking_left_idle_${String(i).padStart(3, "0")}`,
+      })),
+      frameRate: 6,
       repeat: -1,
     });
 
     // [NEW] walk right
     this.anims.create({
       key: "walk_right",
-      frames: Array.from({ length: 19 }).map((_, i) => {
+      frames: Array.from({ length: 20 }).map((_, i) => {
         const num = String(i).padStart(3, "0");
         return { key: `viking_right_walk_${num}` };
       }),
@@ -216,11 +243,23 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // [NEW] idle right
+    // === IDLE RIGHT ===
     this.anims.create({
       key: "idle_right",
-      frames: [{ key: "viking_right_walk_000" }],
-      frameRate: 1,
+      frames: Array.from({ length: 12 }).map((_, i) => ({
+        key: `viking_right_idle_${String(i).padStart(3, "0")}`,
+      })),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    //=== NPC ANIMATION: Dark Oracle Idle ===//
+    this.anims.create({
+      key: "oracle_idle_anim",
+      frames: Array.from({ length: 18 }).map((_, i) => ({
+        key: `oracle_idle_${String(i).padStart(3, "0")}`,
+      })),
+      frameRate: 6,
       repeat: -1,
     });
   }
@@ -256,7 +295,9 @@ export class MainScene extends Phaser.Scene {
 
     // Create NPC
     const npcPos = this.getNPCPosition(currentLevel);
-    this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "npc");
+    this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "oracle_idle_000");
+    this.npc.play("oracle_idle_anim");
+    this.npc.setDisplaySize(48, 48); // adjust ukuran NPC
     this.npc.setImmovable(true);
 
     // set posisi NPC → screen space untuk dialog

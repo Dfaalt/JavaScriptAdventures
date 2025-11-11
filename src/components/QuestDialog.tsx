@@ -95,9 +95,7 @@ const QuestDialog = () => {
               style={{ backgroundColor: "#FFC300" }}
             />
             <h3 className="text-lg font-bold" style={{ color: "#FFC300" }}>
-              {currentQuest
-                ? `Level ${/* optional */ ""} : ${currentQuest.title}`
-                : "Quest"}
+              {currentQuest ? currentQuest.title : "Quest"}
             </h3>
           </div>
           <p className="text-sm text-white/80">{dialogText}</p>
