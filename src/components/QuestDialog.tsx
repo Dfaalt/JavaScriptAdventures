@@ -5,8 +5,14 @@ const MARGIN = 12;
 const OFFSET = 16; // jarak dari NPC
 
 const QuestDialog = () => {
-  const { showDialog, dialogText, setShowDialog, currentQuest, npcPosition } =
-    useGameStore();
+  const {
+    showDialog,
+    dialogText,
+    setShowDialog,
+    currentQuest,
+    npcPosition,
+    setShowEditor,
+  } = useGameStore();
   const [pos, setPos] = useState({ x: 0, y: 0, above: false });
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -115,13 +121,23 @@ const QuestDialog = () => {
           </div>
         )}
 
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end mt-4 gap-2">
           <button
             onClick={() => setShowDialog(false)}
             className="px-4 py-2 rounded text-sm font-medium transition-all hover:brightness-110"
             style={{ backgroundColor: "#FFC300", color: "#000" }}
           >
             Got it!
+          </button>
+          <button
+            onClick={() => {
+              setShowEditor(true);
+              setShowDialog(false);
+            }}
+            className="px-4 py-2 rounded text-sm font-medium transition-all hover:brightness-110"
+            style={{ backgroundColor: "#FFC300", color: "#000" }}
+          >
+            Code Here!
           </button>
         </div>
       </div>

@@ -16,25 +16,60 @@ export class MainScene extends Phaser.Scene {
   private portalPrompt!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
 
+  // [NEW] arah terakhir untuk nentuin anim idle
+  private lastDir: "up" | "down" | "left" | "right" = "up";
+
   constructor() {
     super({ key: "MainScene" });
   }
 
+  // [NEW] helper untuk load frame 000..011 dengan prefix path yang sama
+  private loadPngSequence(
+    keyPrefix: string,
+    pathPrefix: string,
+    start: number,
+    end: number
+  ) {
+    for (let i = start; i <= end; i++) {
+      const num = String(i).padStart(3, "0"); // 000, 001, ...
+      this.load.image(`${keyPrefix}_${num}`, `${pathPrefix}${num}.png`);
+    }
+  }
+
   preload() {
-    // Create simple colored rectangles as placeholders
-    this.createPlayerGraphic();
+    // Pastikan file ada di: /public/assets/viking/Back - Walking_000.png ... _011.png
+    this.loadPngSequence(
+      "viking_back_walk",
+      "/assets/characters/viking/Back - Walking_",
+      0,
+      19
+    );
+    this.loadPngSequence(
+      "viking_front_walk",
+      "/assets/characters/viking/Front - Walking_",
+      0,
+      19
+    );
+    // [NEW] Left - Walking
+    this.loadPngSequence(
+      "viking_left_walk",
+      "/assets/characters/viking/Left - Walking_",
+      0,
+      19
+    );
+    // [NEW] Right - Walking
+    this.loadPngSequence(
+      "viking_right_walk",
+      "/assets/characters/viking/Right - Walking_",
+      0,
+      19
+    );
+
+    // Asset lain tetap dipakai
     this.createNPCGraphic();
     this.createDoorGraphic();
     this.createPortalGraphic();
     this.createGroundGraphic();
-  }
-
-  private createPlayerGraphic() {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x00ff00, 1);
-    graphics.fillRect(0, 0, 32, 32);
-    graphics.generateTexture("player", 32, 32);
-    graphics.destroy();
   }
 
   private createNPCGraphic() {
@@ -102,11 +137,91 @@ export class MainScene extends Phaser.Scene {
     this.setupControls();
     this.setupStoreSubscription();
 
+    // [NEW] definisi animasi karakter (setelah level ada)
+    this.definePlayerAnimations();
+
     // Recompute posisi layar NPC saat canvas di-resize
     this.scale.on("resize", () => {
       if (useGameStore.getState().showDialog) {
         this.updateNpcScreenPosition();
       }
+    });
+  }
+
+  // [NEW] extract pembuatan animasi biar rapi & bisa dipanggil kapan saja
+  private definePlayerAnimations() {
+    // walk back (menghadap atas) ✅ sudah ada
+    this.anims.create({
+      key: "walk_back",
+      frames: Array.from({ length: 19 }).map((_, i) => {
+        const num = String(i).padStart(3, "0");
+        return { key: `viking_back_walk_${num}` };
+      }),
+      frameRate: 12,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "idle_back",
+      frames: [{ key: "viking_back_walk_000" }],
+      frameRate: 1,
+      repeat: -1,
+    });
+
+    // [NEW] walk front (menghadap bawah)
+    this.anims.create({
+      key: "walk_front",
+      frames: Array.from({ length: 19 }).map((_, i) => {
+        const num = String(i).padStart(3, "0");
+        return { key: `viking_front_walk_${num}` };
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    // [NEW] idle front
+    this.anims.create({
+      key: "idle_front",
+      frames: [{ key: "viking_front_walk_000" }],
+      frameRate: 1,
+      repeat: -1,
+    });
+    // [NEW] walk left
+    this.anims.create({
+      key: "walk_left",
+      frames: Array.from({ length: 19 }).map((_, i) => {
+        const num = String(i).padStart(3, "0");
+        return { key: `viking_left_walk_${num}` };
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    // [NEW] idle left
+    this.anims.create({
+      key: "idle_left",
+      frames: [{ key: "viking_left_walk_000" }],
+      frameRate: 1,
+      repeat: -1,
+    });
+
+    // [NEW] walk right
+    this.anims.create({
+      key: "walk_right",
+      frames: Array.from({ length: 19 }).map((_, i) => {
+        const num = String(i).padStart(3, "0");
+        return { key: `viking_right_walk_${num}` };
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    // [NEW] idle right
+    this.anims.create({
+      key: "idle_right",
+      frames: [{ key: "viking_right_walk_000" }],
+      frameRate: 1,
+      repeat: -1,
     });
   }
 
@@ -129,14 +244,15 @@ export class MainScene extends Phaser.Scene {
     this.levelText.setScrollFactor(0);
     this.levelText.setDepth(100);
 
-    // Create player
+    // [CHANGED] Create player → pakai frame karakter, bukan texture "player"
     const playerStartPos = this.getPlayerStartPosition(currentLevel);
     this.player = this.physics.add.sprite(
       playerStartPos.x,
       playerStartPos.y,
-      "player"
+      "viking_back_walk_000" // [CHANGED] awalnya "player"
     );
     this.player.setCollideWorldBounds(true);
+    this.player.setDisplaySize(48, 48); // [NEW] opsional skala tampilan
 
     // Create NPC
     const npcPos = this.getNPCPosition(currentLevel);
@@ -284,7 +400,7 @@ export class MainScene extends Phaser.Scene {
       duration: 500,
       onComplete: () => {
         this.door.setActive(false);
-        this.door.body!.enable = false;
+        (this.door.body as Phaser.Physics.Arcade.Body)!.enable = false;
         // Show portal after door opens
         this.portal.setVisible(true);
       },
@@ -316,25 +432,65 @@ export class MainScene extends Phaser.Scene {
   }
 
   update() {
-    // Player movement
+    // [CHANGED] Movement + pilih animasi
     const speed = 160;
     this.player.setVelocity(0);
 
+    let moving = false;
+
     if (this.cursors.left.isDown || this.wasd.left.isDown) {
       this.player.setVelocityX(-speed);
+      this.lastDir = "left";
+      moving = true;
     } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
       this.player.setVelocityX(speed);
+      this.lastDir = "right";
+      moving = true;
     }
 
     if (this.cursors.up.isDown || this.wasd.up.isDown) {
       this.player.setVelocityY(-speed);
+      this.lastDir = "up";
+      moving = true;
     } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
       this.player.setVelocityY(speed);
+      this.lastDir = "down";
+      moving = true;
     }
 
-    // Ketika dialog sedang tampil, perbarui posisi layar NPC setiap frame
-    if (useGameStore.getState().showDialog) {
-      this.updateNpcScreenPosition();
+    // [UPDATED] mainkan animasi sesuai arah terakhir
+    if (moving) {
+      if (this.lastDir === "up") {
+        if (this.player.anims.currentAnim?.key !== "walk_back") {
+          this.player.play("walk_back", true);
+        }
+      } else if (this.lastDir === "down") {
+        if (this.player.anims.currentAnim?.key !== "walk_front") {
+          this.player.play("walk_front", true);
+        }
+      } else if (this.lastDir === "left") {
+        if (this.player.anims.currentAnim?.key !== "walk_left") {
+          this.player.play("walk_left", true);
+        }
+      } else if (this.lastDir === "right") {
+        if (this.player.anims.currentAnim?.key !== "walk_right") {
+          this.player.play("walk_right", true);
+        }
+      }
+    } else {
+      // idle mengikuti arah terakhir
+      const idleKey =
+        this.lastDir === "up"
+          ? "idle_back"
+          : this.lastDir === "down"
+          ? "idle_front"
+          : this.lastDir === "left"
+          ? "idle_left"
+          : "idle_right";
+
+      if (this.player.anims.currentAnim?.key !== idleKey) {
+        this.player.play(idleKey);
+      }
     }
 
     // Check distance to NPC
