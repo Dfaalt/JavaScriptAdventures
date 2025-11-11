@@ -291,14 +291,40 @@ export class MainScene extends Phaser.Scene {
       "viking_back_walk_000" // [CHANGED] awalnya "player"
     );
     this.player.setCollideWorldBounds(true);
-    this.player.setDisplaySize(48, 48); // [NEW] opsional skala tampilan
+    this.player.setDisplaySize(128, 128);
+    {
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      const srcW = this.player.width; // ukuran sumber
+      const srcH = this.player.height;
+
+      // hitbox mencakup dari paha sampai dada (≈ 45% tinggi sprite)
+      const W = Math.round(srcW * 0.42);
+      const H = Math.round(srcH * 0.5);
+
+      body.setSize(W, H, false);
+      body.setOffset(Math.round(srcW * 0.29), Math.round(srcH * 0.45));
+      this.player.setPushable(true);
+    }
 
     // Create NPC
     const npcPos = this.getNPCPosition(currentLevel);
     this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "oracle_idle_000");
     this.npc.play("oracle_idle_anim");
-    this.npc.setDisplaySize(48, 48); // adjust ukuran NPC
-    this.npc.setImmovable(true);
+    this.npc.setDisplaySize(128, 128);
+    {
+      const body = this.npc.body as Phaser.Physics.Arcade.Body;
+      const srcW = this.npc.width;
+      const srcH = this.npc.height;
+
+      const W = Math.round(srcW * 0.48);
+      const H = Math.round(srcH * 0.62);
+
+      body.setSize(W, H, false);
+      body.setOffset(Math.round(srcW * 0.26), Math.round(srcH * 0.38));
+
+      this.npc.setImmovable(true);
+      this.npc.setPushable(false);
+    }
 
     // set posisi NPC → screen space untuk dialog
     this.updateNpcScreenPosition();
@@ -542,7 +568,7 @@ export class MainScene extends Phaser.Scene {
       this.npc.y
     );
 
-    this.playerNearNPC = distance < 60;
+    this.playerNearNPC = distance < 80;
     this.interactPrompt.setVisible(
       this.playerNearNPC && !useGameStore.getState().showDialog
     );
