@@ -8,7 +8,12 @@ export class MainScene extends Phaser.Scene {
   private door!: Phaser.Physics.Arcade.Sprite;
   private portal!: Phaser.Physics.Arcade.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd!: any;
+  private wasd!: {
+    up: Phaser.Input.Keyboard.Key;
+    down: Phaser.Input.Keyboard.Key;
+    left: Phaser.Input.Keyboard.Key;
+    right: Phaser.Input.Keyboard.Key;
+  };
   private interactKey!: Phaser.Input.Keyboard.Key;
   private playerNearNPC: boolean = false;
   private playerNearPortal: boolean = false;
@@ -502,6 +507,29 @@ export class MainScene extends Phaser.Scene {
   }
 
   update() {
+    const store = useGameStore.getState();
+    // blok dibawah update
+    if (store.showDialog) {
+      this.player.setVelocity(0);
+
+      const idleKey =
+        this.lastDir === "up"
+          ? "idle_back"
+          : this.lastDir === "down"
+          ? "idle_front"
+          : this.lastDir === "left"
+          ? "idle_left"
+          : "idle_right";
+
+      if (this.player.anims.currentAnim?.key !== idleKey) {
+        this.player.play(idleKey);
+      }
+
+      this.interactPrompt?.setVisible(false);
+      this.portalPrompt?.setVisible(false);
+      return; // stop semua logic update di frame ini
+    }
+
     // [CHANGED] Movement + pilih animasi
     const speed = 160;
     this.player.setVelocity(0);

@@ -101,7 +101,7 @@ const QuestDialog = () => {
         )}
 
         {/* NAMEPLATE + PANEL */}
-        <div className="relative flex-1 min-h-[96px]">
+        <div className="relative flex-1 min-h-24">
           {/* NAMEPLATE (di atas border) */}
           {currentQuest?.npcName && (
             <div className="absolute -top-5 left-6 z-20 flex items-center bg-[#7f2d3a] text-white border-2 border-white px-3 py-1 rounded-md shadow-[0_2px_0_rgba(0,0,0,0.35)]">
