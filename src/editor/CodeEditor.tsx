@@ -29,9 +29,8 @@ const CodeEditor = () => {
     setGlobalEditorFocused(editorFocused);
   }, [editorFocused, setGlobalEditorFocused]);
 
-  // KUNCI: Konfigurasi Monaco agar Space tidak bocor ke Phaser
+  // Konfigurasi Monaco: cegah event bocor ke Phaser
   const handleEditorMount: OnMount = (editor, monaco) => {
-    // Fokus/blur -> update store
     editor.onDidFocusEditorText(() => {
       setEditorFocused(true);
       setGlobalEditorFocused(true);
@@ -43,7 +42,7 @@ const CodeEditor = () => {
 
     editor.onKeyDown((e) => {
       const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
-      if (hasModifier) return; // biarkan shortcut seperti Ctrl/Cmd+A, Ctrl+S, dll
+      if (hasModifier) return; // biarkan Ctrl/Cmd shortcuts
 
       const k = monaco.KeyCode;
       const shouldBlock =
@@ -53,34 +52,42 @@ const CodeEditor = () => {
         e.keyCode === k.KeyA ||
         e.keyCode === k.KeyS ||
         e.keyCode === k.KeyD;
-
-      if (shouldBlock) {
-        e.stopPropagation(); // cegah event "tembus" ke Phaser
-      }
+      if (shouldBlock) e.stopPropagation();
     });
   };
 
   const handleRunCode = () => {
     if (!currentQuest) return;
 
-    // Reset previous output
+    // Reset output lama
     setCodeOutput("");
     setCodeError(null);
 
-    // Create sandbox context based on current level
-    let context: any = {};
+    // Flag untuk mencegah fallback menimpa pesan khusus
+    let wroteOutput = false;
+    const safeSetOutput = (msg: string) => {
+      wroteOutput = true;
+      setCodeOutput(msg);
+    };
+    const safeSetError = (msg: string) => {
+      wroteOutput = true;
+      setCodeError(msg);
+    };
+
+    // Context sandbox per level
+    const context: Record<string, any> = {};
 
     if (currentLevel === 1) {
-      // Level 1: Variables and function calls
+      // Level 1: Variables + function call
       context.openDoor = () => {
         if (code.includes("key") && code.includes("7")) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput(
+          safeSetOutput(
             "✨ The ancient door opens! The Keeper nods approvingly as light floods through..."
           );
         } else {
-          setCodeError("The door remains sealed. The key must equal 7...");
+          safeSetError("The door remains sealed. The key must equal 7...");
         }
       };
     } else if (currentLevel === 2) {
@@ -89,32 +96,32 @@ const CodeEditor = () => {
         if (result === "PORTAL_ACTIVE") {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput(
+          safeSetOutput(
             '✨ The portal ignites with power! "You understand functions," the Guardian whispers...'
           );
         } else {
-          setCodeError(
+          safeSetError(
             'The portal flickers but remains dormant. It needs "PORTAL_ACTIVE"...'
           );
         }
       };
     } else if (currentLevel === 3) {
-      // Level 3: Arrays and loops
+      // Level 3: Loops/Numbers
       context.buildBridge = (count: number) => {
         if (count === 5) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput(
+          safeSetOutput(
             "✨ The crystals unite! A bridge of pure light forms across the void!"
           );
         } else {
-          setCodeError(
+          safeSetError(
             `Only ${count} crystals resonate... You need exactly 5 to form the bridge.`
           );
         }
       };
     } else if (currentLevel === 4) {
-      // Level 4: Objects and conditionals
+      // Level 4: Objects + conditionals
       context.revealTruth = (hero: any) => {
         if (
           hero &&
@@ -126,27 +133,26 @@ const CodeEditor = () => {
         ) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput(
+          safeSetOutput(
             '✨ The mirror glows! Your reflection transforms... "You ARE ready," the voice echoes.'
           );
         } else {
-          setCodeError(
+          safeSetError(
             "The mirror remains clouded. Your hero object must have: name (string), level (≥4), and ready (true)."
           );
         }
       };
     } else if (currentLevel === 5) {
-      // Level 5: Advanced - filter, loop, and logic
+      // Level 5: Array/filter/reduce logic (hasil akhir = 27)
       context.becomeGuardian = (result: number) => {
-        // Expected: [7, 9, 11] > 5, sum = 27
         if (result === 27) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput(
+          safeSetOutput(
             "✨ ASCENSION COMPLETE! You are now the Guardian of the Realm! The code bends to your will!"
           );
         } else {
-          setCodeError(
+          safeSetError(
             `The cosmic balance shows ${result}, but the answer should be 27 (sum of 7+9+11 from the array).`
           );
         }
@@ -155,11 +161,14 @@ const CodeEditor = () => {
 
     const result = runCodeInSandbox(code, context);
 
-    if (result.success) {
-      if (!codeOutput) {
-        setCodeOutput(result.output || "Code executed");
+    // Fallback: hanya jika sandbox sukses DAN context tidak menulis output/error sama sekali
+    if (result.success && !wroteOutput) {
+      if (result.output) {
+        setCodeOutput(result.output);
+      } else {
+        setCodeOutput("Code executed");
       }
-    } else {
+    } else if (!result.success && !wroteOutput) {
       setCodeError(result.error || "Error executing code");
     }
   };
