@@ -37,7 +37,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    // Pastikan file ada di: /public/assets/viking/Back - Walking_000.png ... _011.png
+    // Back - Walking
     this.loadPngSequence(
       "viking_back_walk",
       "/assets/characters/viking/Back - Walking_",
@@ -90,10 +90,7 @@ export class MainScene extends Phaser.Scene {
       15
     );
 
-    // ===============================================
     // LOAD NPC BERDASARKAN LEVEL
-    // ===============================================
-    // [ADD] Preload SEMUA NPC idle
     for (const npc of this.NPC_LIST) {
       this.loadPngSequence(`${npc.name}_idle`, npc.folder, 0, npc.last);
     }
@@ -188,17 +185,11 @@ export class MainScene extends Phaser.Scene {
     // [NEW] definisi animasi karakter (setelah level ada)
     this.definePlayerAnimations();
     this.createLevel();
-    // Recompute posisi layar NPC saat canvas di-resize
-    this.scale.on("resize", () => {
-      if (useGameStore.getState().showDialog) {
-        this.updateNpcScreenPosition();
-      }
-    });
   }
 
   // [NEW] extract pembuatan animasi biar rapi & bisa dipanggil kapan saja
   private definePlayerAnimations() {
-    // walk back (menghadap atas) ✅ sudah ada
+    // walk back (menghadap atas)
     this.anims.create({
       key: "walk_back",
       frames: Array.from({ length: 20 }).map((_, i) => {
@@ -282,9 +273,7 @@ export class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // ===============================================
     // NPC ANIMATION (dynamic)
-    // ===============================================
     for (const npc of this.NPC_LIST) {
       const count = npc.last + 1; // karena file 0..last
       this.anims.create({
@@ -342,8 +331,6 @@ export class MainScene extends Phaser.Scene {
 
     // Create NPC
     const npcPos = this.getNPCPosition(currentLevel);
-    // this.npc = this.physics.add.sprite(npcPos.x, npcPos.y, "oracle_idle_000");
-    // this.npc.play("oracle_idle_anim");
     const npcData = this.NPC_LIST[currentLevel - 1];
 
     this.npc = this.physics.add.sprite(
@@ -368,9 +355,6 @@ export class MainScene extends Phaser.Scene {
       this.npc.setImmovable(true);
       this.npc.setPushable(false);
     }
-
-    // set posisi NPC → screen space untuk dialog
-    this.updateNpcScreenPosition();
 
     // Create door/obstacle
     const doorPos = this.getDoorPosition(currentLevel);
@@ -517,30 +501,6 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
-  // === PATCH: world → screen coord untuk NPC (dipakai dialog React) ===
-  private updateNpcScreenPosition() {
-    if (!this.npc || !this.cameras?.main) return;
-
-    const rect = this.game.canvas.getBoundingClientRect();
-
-    // skala canvas aktual vs ukuran logic game
-    const gameW = this.scale.gameSize.width;
-    const gameH = this.scale.gameSize.height;
-    const scaleX = rect.width / gameW;
-    const scaleY = rect.height / gameH;
-
-    // kompensasi kamera
-    const cam = this.cameras.main;
-    const worldX = this.npc.x - cam.worldView.x;
-    const worldY = this.npc.y - cam.worldView.y;
-
-    // posisi layar absolut (px, relatif ke viewport)
-    const screenX = rect.left + worldX * scaleX;
-    const screenY = rect.top + worldY * scaleY;
-
-    useGameStore.getState().setNpcPosition({ x: screenX, y: screenY });
-  }
-
   update() {
     // [CHANGED] Movement + pilih animasi
     const speed = 160;
@@ -657,7 +617,6 @@ export class MainScene extends Phaser.Scene {
       if (quest) {
         store.setCurrentQuest(quest);
         store.setDialogText(quest.description);
-        this.updateNpcScreenPosition(); // -- penting: sync posisi sebelum buka dialog
         store.setShowDialog(true);
       }
     } else if (store.currentQuest.completed) {
@@ -670,11 +629,9 @@ export class MainScene extends Phaser.Scene {
           "You have become the Guardian! The realm is now yours to protect. Thank you, worthy one. 🎉"
         );
       }
-      this.updateNpcScreenPosition(); // -- penting
       store.setShowDialog(true);
     } else {
       store.setDialogText(`Hint: ${store.currentQuest.hint}`);
-      this.updateNpcScreenPosition(); // -- penting
       store.setShowDialog(true);
     }
   }
@@ -683,6 +640,7 @@ export class MainScene extends Phaser.Scene {
     const store = useGameStore.getState();
 
     if (store.currentLevel < 5) {
+      const nextLevels = store.currentLevel + 1;
       // Move to next level
       store.nextLevel();
       store.setCurrentQuest(null);
@@ -694,9 +652,8 @@ export class MainScene extends Phaser.Scene {
       // Show welcome message for new level
       setTimeout(() => {
         store.setDialogText(
-          `Welcome to Level ${store.currentLevel}! Seek the Keeper to learn what trials await...`
+          `Welcome to Level ${nextLevels}! Seek the Keeper to learn what trials await...`
         );
-        this.updateNpcScreenPosition(); // -- pastikan dialog nempel di NPC level baru
         store.setShowDialog(true);
       }, 500);
     }

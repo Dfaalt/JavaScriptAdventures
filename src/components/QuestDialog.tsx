@@ -1,143 +1,126 @@
+import { useEffect } from "react";
 import { useGameStore } from "@/store/gameStore";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-const MARGIN = 12;
-const OFFSET = 16; // jarak dari NPC
+// (Opsional) ganti path sesuai struktur asetmu
+const getNpcPortraitSrc = (npcKey?: string) => {
+  const map: Record<string, string> = {
+    oracle: "/assets/npc/oracle/0_Dark_Oracle_Idle Blinking_000.png",
+    golem: "/assets/npc/golem/0_Golem_Idle Blinking_000.png",
+    blacksmith: "/assets/npc/blacksmith/0_Blacksmith_Idle Blinking_000.png",
+    sage: "/assets/npc/sage/0_Sage_Idle Blinking_000.png",
+    valkyrie: "/assets/npc/valkyrie/0_Valkyrie_Idle Blinking_000.png",
+  };
+  return npcKey && map[npcKey] ? map[npcKey] : "";
+};
+
+const PLAYER_PORTRAIT =
+  "/assets/characters/viking/Left - Idle Blinking_007.png";
 
 const QuestDialog = () => {
-  const {
-    showDialog,
-    dialogText,
-    setShowDialog,
-    currentQuest,
-    npcPosition,
-    setShowEditor,
-  } = useGameStore();
-  const [pos, setPos] = useState({ x: 0, y: 0, above: false });
-  const boxRef = useRef<HTMLDivElement>(null);
+  const { showDialog, dialogText, setShowDialog, currentQuest, setShowEditor } =
+    useGameStore();
 
-  // hitung posisi setelah elemen ter-render agar dapat ukuran aktual
-  const recompute = () => {
-    const box = boxRef.current;
-    if (!box) return;
+  const isQuestDialog = !!currentQuest;
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    const w = box.offsetWidth;
-    const h = box.offsetHeight;
-
-    // default: di bawah NPC
-    let above = false;
-    let x = npcPosition.x - w / 2;
-    let y = npcPosition.y + OFFSET;
-
-    // kalau mentok bawah → pindah di atas NPC
-    if (y + h + MARGIN > vh) {
-      above = true;
-      y = npcPosition.y - OFFSET - h;
-    }
-
-    // clamp kiri/kanan/atas/bawah
-    x = Math.max(MARGIN, Math.min(x, vw - w - MARGIN));
-    y = Math.max(MARGIN, Math.min(y, vh - h - MARGIN));
-
-    setPos({ x, y, above });
-  };
-
-  useLayoutEffect(() => {
-    if (!showDialog) return;
-    // hitung saat muncul
-    recompute();
-  }, [showDialog, npcPosition.x, npcPosition.y]);
-
+  // Selalu panggil hook; perilaku dikondisikan di dalam effect
   useEffect(() => {
     if (!showDialog) return;
-    const onResize = () => recompute();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [showDialog]);
 
+  // CUKUP cek showDialog agar "Welcome to Level X" tetap muncul
   if (!showDialog) return null;
 
+  const npcSrc = currentQuest ? getNpcPortraitSrc(currentQuest.npcKey) : "";
+
+  const handleClose = () => setShowDialog(false);
+  const handleOpenEditor = () => {
+    setShowDialog(false);
+    setShowEditor(true);
+  };
+
   return (
-    <div
-      // gunakan absolute agar patuh ke koordinat layar yang kita hitung
-      className="absolute z-40"
-      style={{ left: pos.x, top: pos.y }}
-      ref={boxRef}
-    >
-      {/* panah yang menyesuaikan posisi */}
-      <div
-        className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-r-[10px] border-l-transparent border-r-transparent ${
-          pos.above
-            ? "bottom-[-10px] border-t-[10px]"
-            : "-top-[10px] border-b-[10px]"
-        }`}
-        style={{
-          borderTopColor: pos.above ? "#FFC300" : "transparent",
-          borderBottomColor: pos.above ? "transparent" : "#FFC300",
-        }}
-      />
-
-      {/* kotak dialog */}
-      <div
-        className="relative rounded-lg p-5 shadow-2xl backdrop-blur-sm max-w-[420px]"
-        style={{
-          backgroundColor: "rgba(0,0,0,0.85)",
-          border: "2px solid #FFC300",
-        }}
-      >
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <div
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: "#FFC300" }}
-            />
-            <h3 className="text-lg font-bold" style={{ color: "#FFC300" }}>
-              {currentQuest ? currentQuest.title : "Quest"}
-            </h3>
-          </div>
-          <p className="text-sm text-white/80">{dialogText}</p>
-        </div>
-
-        {currentQuest && (
-          <div
-            className="mt-3 rounded-md p-3"
-            style={{
-              backgroundColor: "rgba(255,195,0,0.08)",
-              border: "1px solid rgba(255,195,0,0.3)",
-            }}
-          >
-            <p
-              className="text-xs font-semibold mb-1"
-              style={{ color: "#FFC300" }}
-            >
-              Your Objective:
-            </p>
-            <p className="text-xs text-white/80">{currentQuest.objective}</p>
-          </div>
+    <div className="fixed bottom-0 left-0 w-full z-40 flex items-end justify-center p-3 sm:p-4">
+      <div className="relative w-full max-w-6xl flex items-center justify-between gap-3 sm:gap-4">
+        {/* NPC portrait (kiri) */}
+        {npcSrc ? (
+          <img
+            src={npcSrc}
+            alt={currentQuest?.npcName || "NPC"}
+            className="h-24 sm:h-32 md:h-40 object-contain select-none"
+            draggable={false}
+          />
+        ) : (
+          <div className="h-24 sm:h-32 md:h-40" />
         )}
 
-        <div className="flex justify-end mt-4 gap-2">
-          <button
-            onClick={() => setShowDialog(false)}
-            className="px-4 py-2 rounded text-sm font-medium transition-all hover:brightness-110"
-            style={{ backgroundColor: "#FFC300", color: "#000" }}
+        {/* Kotak dialog transparan bergaya retro */}
+        <div className="relative flex-1 min-h-[96px]">
+          <div
+            className="relative w-full bg-black/65 border-2 border-white px-5 py-4 md:px-7 md:py-6 shadow-[0_0_0_4px_rgba(0,0,0,0.5)]"
+            /* kalau mau benar-benar kotak, jangan pakai rounded */
           >
-            Got it!
-          </button>
-          <button
-            onClick={() => {
-              setShowEditor(true);
-              setShowDialog(false);
-            }}
-            className="px-4 py-2 rounded text-sm font-medium transition-all hover:brightness-110"
-            style={{ backgroundColor: "#FFC300", color: "#000" }}
-          >
-            Code Here!
-          </button>
+            {/* Ornamen sudut kiri-atas */}
+            <span className="pointer-events-none absolute -top-2 -left-2 w-5 h-5 border-t-2 border-l-2 border-white" />
+            {/* Ornamen sudut kanan-atas */}
+            <span className="pointer-events-none absolute -top-2 -right-2 w-5 h-5 border-t-2 border-r-2 border-white" />
+            {/* Ornamen sudut kiri-bawah */}
+            <span className="pointer-events-none absolute -bottom-2 -left-2 w-5 h-5 border-b-2 border-l-2 border-white" />
+            {/* Ornamen sudut kanan-bawah */}
+            <span className="pointer-events-none absolute -bottom-2 -right-2 w-5 h-5 border-b-2 border-r-2 border-white" />
+
+            {/* Judul/NPC name (opsional) */}
+            <h3 className="font-bold text-base sm:text-lg md:text-xl mb-2 text-white/95 drop-shadow-[0_2px_0_rgba(0,0,0,0.4)]">
+              {currentQuest?.npcName || " "}
+            </h3>
+
+            {/* Isi dialog */}
+            <p className="text-white/95 text-sm sm:text-base leading-relaxed tracking-wide [text-shadow:0_2px_0_rgba(0,0,0,0.35)]">
+              {dialogText}
+            </p>
+
+            {/* Objective (hanya saat quest) */}
+            {!!currentQuest?.objective && (
+              <div className="mt-3 p-3 border border-white/30 bg-white/5 text-white/90">
+                <p className="text-xs font-semibold mb-1 text-white/80">
+                  Your Objective:
+                </p>
+                <p className="text-xs">{currentQuest.objective}</p>
+              </div>
+            )}
+
+            {/* Tombol aksi */}
+            <div className="mt-3 md:mt-4 flex gap-2 justify-end">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 text-sm font-medium border-2 border-white/80 text-white bg-white/5 hover:bg-white/10 transition"
+              >
+                Got it!
+              </button>
+
+              {isQuestDialog && (
+                <button
+                  onClick={handleOpenEditor}
+                  className="px-4 py-2 text-sm font-medium border-2 border-white text-black bg-white hover:bg-white/90 transition"
+                >
+                  Code Here!
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Player portrait (kanan, dibalik supaya menghadap NPC) */}
+        <img
+          src={PLAYER_PORTRAIT}
+          alt="Player"
+          className="h-24 sm:h-32 md:h-40 object-contain select-none"
+          draggable={false}
+        />
       </div>
     </div>
   );

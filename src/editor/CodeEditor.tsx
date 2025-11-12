@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import Editor, { type OnMount } from '@monaco-editor/react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { useGameStore } from '@/store/gameStore';
-import { runCodeInSandbox } from '@/utils/sandbox';
-import { Play, Info, CheckCircle2, XCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import Editor, { type OnMount } from "@monaco-editor/react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useGameStore } from "@/store/gameStore";
+import { runCodeInSandbox } from "@/utils/sandbox";
+import { Play, Info, CheckCircle2, XCircle } from "lucide-react";
 
 const CodeEditor = () => {
-  const [code, setCode] = useState('// Write your code here\n');
+  const [code, setCode] = useState("// Write your code here\n");
   const [editorFocused, setEditorFocused] = useState(false);
 
   const {
@@ -41,11 +41,21 @@ const CodeEditor = () => {
       setGlobalEditorFocused(false);
     });
 
-    // Hentikan propagasi Space (dan Enter opsional)
     editor.onKeyDown((e) => {
-      if (e.keyCode === monaco.KeyCode.Space || e.keyCode === monaco.KeyCode.Enter) {
-        // biarkan editor tetap mengetik, tapi JANGAN teruskan ke window/Phaser
-        e.stopPropagation();
+      const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
+      if (hasModifier) return; // biarkan shortcut seperti Ctrl/Cmd+A, Ctrl+S, dll
+
+      const k = monaco.KeyCode;
+      const shouldBlock =
+        e.keyCode === k.Space ||
+        e.keyCode === k.Enter ||
+        e.keyCode === k.KeyW ||
+        e.keyCode === k.KeyA ||
+        e.keyCode === k.KeyS ||
+        e.keyCode === k.KeyD;
+
+      if (shouldBlock) {
+        e.stopPropagation(); // cegah event "tembus" ke Phaser
       }
     });
   };
@@ -54,7 +64,7 @@ const CodeEditor = () => {
     if (!currentQuest) return;
 
     // Reset previous output
-    setCodeOutput('');
+    setCodeOutput("");
     setCodeError(null);
 
     // Create sandbox context based on current level
@@ -63,23 +73,29 @@ const CodeEditor = () => {
     if (currentLevel === 1) {
       // Level 1: Variables and function calls
       context.openDoor = () => {
-        if (code.includes('key') && code.includes('7')) {
+        if (code.includes("key") && code.includes("7")) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput('✨ The ancient door opens! The Keeper nods approvingly as light floods through...');
+          setCodeOutput(
+            "✨ The ancient door opens! The Keeper nods approvingly as light floods through..."
+          );
         } else {
-          setCodeError('The door remains sealed. The key must equal 7...');
+          setCodeError("The door remains sealed. The key must equal 7...");
         }
       };
     } else if (currentLevel === 2) {
       // Level 2: Functions
       context.unlockGate = (result: any) => {
-        if (result === 'PORTAL_ACTIVE') {
+        if (result === "PORTAL_ACTIVE") {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput('✨ The portal ignites with power! "You understand functions," the Guardian whispers...');
+          setCodeOutput(
+            '✨ The portal ignites with power! "You understand functions," the Guardian whispers...'
+          );
         } else {
-          setCodeError('The portal flickers but remains dormant. It needs "PORTAL_ACTIVE"...');
+          setCodeError(
+            'The portal flickers but remains dormant. It needs "PORTAL_ACTIVE"...'
+          );
         }
       };
     } else if (currentLevel === 3) {
@@ -88,9 +104,13 @@ const CodeEditor = () => {
         if (count === 5) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput('✨ The crystals unite! A bridge of pure light forms across the void!');
+          setCodeOutput(
+            "✨ The crystals unite! A bridge of pure light forms across the void!"
+          );
         } else {
-          setCodeError(`Only ${count} crystals resonate... You need exactly 5 to form the bridge.`);
+          setCodeError(
+            `Only ${count} crystals resonate... You need exactly 5 to form the bridge.`
+          );
         }
       };
     } else if (currentLevel === 4) {
@@ -98,17 +118,21 @@ const CodeEditor = () => {
       context.revealTruth = (hero: any) => {
         if (
           hero &&
-          typeof hero === 'object' &&
-          typeof hero.name === 'string' &&
-          typeof hero.level === 'number' &&
+          typeof hero === "object" &&
+          typeof hero.name === "string" &&
+          typeof hero.level === "number" &&
           hero.level >= 4 &&
           hero.ready === true
         ) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput('✨ The mirror glows! Your reflection transforms... "You ARE ready," the voice echoes.');
+          setCodeOutput(
+            '✨ The mirror glows! Your reflection transforms... "You ARE ready," the voice echoes.'
+          );
         } else {
-          setCodeError('The mirror remains clouded. Your hero object must have: name (string), level (≥4), and ready (true).');
+          setCodeError(
+            "The mirror remains clouded. Your hero object must have: name (string), level (≥4), and ready (true)."
+          );
         }
       };
     } else if (currentLevel === 5) {
@@ -118,9 +142,13 @@ const CodeEditor = () => {
         if (result === 27) {
           setDoorOpen(true);
           completeQuest();
-          setCodeOutput('✨ ASCENSION COMPLETE! You are now the Guardian of the Realm! The code bends to your will!');
+          setCodeOutput(
+            "✨ ASCENSION COMPLETE! You are now the Guardian of the Realm! The code bends to your will!"
+          );
         } else {
-          setCodeError(`The cosmic balance shows ${result}, but the answer should be 27 (sum of 7+9+11 from the array).`);
+          setCodeError(
+            `The cosmic balance shows ${result}, but the answer should be 27 (sum of 7+9+11 from the array).`
+          );
         }
       };
     }
@@ -129,10 +157,10 @@ const CodeEditor = () => {
 
     if (result.success) {
       if (!codeOutput) {
-        setCodeOutput(result.output || 'Code executed');
+        setCodeOutput(result.output || "Code executed");
       }
     } else {
-      setCodeError(result.error || 'Error executing code');
+      setCodeError(result.error || "Error executing code");
     }
   };
 
@@ -148,7 +176,9 @@ const CodeEditor = () => {
               <h3 className="text-xl font-bold text-primary">Code Editor</h3>
             </div>
             <div className="px-3 py-1 bg-quest/20 border border-quest/30 rounded-full">
-              <span className="text-sm font-semibold text-quest">Level {currentLevel}</span>
+              <span className="text-sm font-semibold text-quest">
+                Level {currentLevel}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -174,8 +204,12 @@ const CodeEditor = () => {
           <div className="mb-4 p-3 bg-quest/10 border border-quest/20 rounded-lg flex items-start gap-2">
             <Info className="w-5 h-5 text-quest flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-quest mb-1">Objective:</p>
-              <p className="text-sm text-foreground">{currentQuest.objective}</p>
+              <p className="text-sm font-semibold text-quest mb-1">
+                Objective:
+              </p>
+              <p className="text-sm text-foreground">
+                {currentQuest.objective}
+              </p>
             </div>
           </div>
         )}
@@ -189,13 +223,13 @@ const CodeEditor = () => {
             height="300px"
             defaultLanguage="javascript"
             value={code}
-            onChange={(value) => setCode(value || '')}
+            onChange={(value) => setCode(value || "")}
             theme="vs-dark"
-            onMount={handleEditorMount}         
+            onMount={handleEditorMount}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              lineNumbers: 'on',
+              lineNumbers: "on",
               scrollBeyondLastLine: false,
               automaticLayout: true,
               tabSize: 2,
