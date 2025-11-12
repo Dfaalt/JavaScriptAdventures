@@ -611,15 +611,19 @@ export class MainScene extends Phaser.Scene {
     const currentLevel = store.currentLevel;
     const questIndex = currentLevel - 1;
 
+    // 1) Belum punya quest → beri quest + deskripsi pertama
     if (!store.currentQuest) {
-      // Give quest for current level
       const quest = quests[questIndex];
       if (quest) {
-        store.setCurrentQuest(quest);
+        store.setCurrentQuest(quest); // ini set npcInteractCount = 1
         store.setDialogText(quest.description);
         store.setShowDialog(true);
       }
-    } else if (store.currentQuest.completed) {
+      return;
+    }
+
+    // 2) Sudah selesai → pesan portal/ending
+    if (store.currentQuest.completed) {
       if (currentLevel < 5) {
         store.setDialogText(
           "The portal awaits. Step through when you are ready to face the next trial..."
@@ -630,7 +634,26 @@ export class MainScene extends Phaser.Scene {
         );
       }
       store.setShowDialog(true);
+      return;
+    }
+
+    // 3) Quest aktif & belum selesai → naikkan hitungan bicara
+    store.bumpNpcInteract();
+
+    const count = useGameStore.getState().npcInteractCount;
+
+    if (count < 4) {
+      // belum boleh kasih hint
+      // kamu bisa ganti kalimat motivasi di sini per selera
+      const flavor = [
+        "Keep trying. The answer is within your grasp...",
+        "Focus on the objective and test your code.",
+      ];
+      const line = flavor[(count - 1) % flavor.length];
+      store.setDialogText(line);
+      store.setShowDialog(true);
     } else {
+      // interaksi ke-3 atau lebih → barulah kasih HINT
       store.setDialogText(`Hint: ${store.currentQuest.hint}`);
       store.setShowDialog(true);
     }

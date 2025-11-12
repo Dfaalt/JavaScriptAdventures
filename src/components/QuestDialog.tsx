@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameStore } from "@/store/gameStore";
 
 // (Opsional) ganti path sesuai struktur asetmu
@@ -16,21 +16,63 @@ const getNpcPortraitSrc = (npcKey?: string) => {
 const PLAYER_PORTRAIT =
   "/assets/characters/viking/Left - Idle Blinking_007.png";
 
+const TYPE_SPEED = 17; // ms per karakter (rasa JRPG)
+const FAST_SPEED = 5; // saat user spam buka tutup dialog, masih cepat
+
 const QuestDialog = () => {
   const { showDialog, dialogText, setShowDialog, currentQuest, setShowEditor } =
     useGameStore();
 
-  const isQuestDialog = !!currentQuest;
+  // Flag untuk aturan tampil UI
+  const isHint =
+    typeof dialogText === "string" &&
+    dialogText.trim().toLowerCase().startsWith("hint:");
+  const showObjectiveBox = !!currentQuest && !currentQuest.completed && isHint;
+  const showCodeHereBtn = !!currentQuest && !currentQuest.completed;
 
-  // Selalu panggil hook; perilaku dikondisikan di dalam effect
+  // === Typewriter State ===
+  const [typed, setTyped] = useState("");
+  const timerRef = useRef<number | null>(null);
+
+  // Jika text panjang & muncul lagi cepat, pakai speed cepat
+  const speed = useMemo(() => {
+    return dialogText.length > 120 ? FAST_SPEED : TYPE_SPEED;
+  }, [dialogText]);
+
+  // Mulai ketik ulang tiap dialog baru / dialog dibuka
   useEffect(() => {
     if (!showDialog) return;
+    // lock body scroll
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    // reset typewriter
+    setTyped("");
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const text =
+      typeof dialogText === "string" ? dialogText : String(dialogText ?? "");
+    let i = 0;
+    timerRef.current = window.setInterval(() => {
+      i++;
+      setTyped(text.slice(0, i));
+      if (i >= text.length && timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }, speed) as unknown as number;
+
     return () => {
       document.body.style.overflow = prev;
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [showDialog]);
+  }, [showDialog, dialogText, speed]);
 
   // CUKUP cek showDialog agar "Welcome to Level X" tetap muncul
   if (!showDialog) return null;
@@ -58,42 +100,41 @@ const QuestDialog = () => {
           <div className="h-24 sm:h-32 md:h-40" />
         )}
 
-        {/* Kotak dialog transparan bergaya retro */}
+        {/* NAMEPLATE + PANEL */}
         <div className="relative flex-1 min-h-[96px]">
-          <div
-            className="relative w-full bg-black/65 border-2 border-white px-5 py-4 md:px-7 md:py-6 shadow-[0_0_0_4px_rgba(0,0,0,0.5)]"
-            /* kalau mau benar-benar kotak, jangan pakai rounded */
-          >
-            {/* Ornamen sudut kiri-atas */}
-            <span className="pointer-events-none absolute -top-2 -left-2 w-5 h-5 border-t-2 border-l-2 border-white" />
-            {/* Ornamen sudut kanan-atas */}
-            <span className="pointer-events-none absolute -top-2 -right-2 w-5 h-5 border-t-2 border-r-2 border-white" />
-            {/* Ornamen sudut kiri-bawah */}
-            <span className="pointer-events-none absolute -bottom-2 -left-2 w-5 h-5 border-b-2 border-l-2 border-white" />
-            {/* Ornamen sudut kanan-bawah */}
-            <span className="pointer-events-none absolute -bottom-2 -right-2 w-5 h-5 border-b-2 border-r-2 border-white" />
+          {/* NAMEPLATE (di atas border) */}
+          {currentQuest?.npcName && (
+            <div className="absolute -top-5 left-6 z-20 flex items-center bg-[#7f2d3a] text-white border-2 border-white px-3 py-1 rounded-md shadow-[0_2px_0_rgba(0,0,0,0.35)]">
+              <span className="text-sm font-semibold tracking-wide">
+                {currentQuest.npcName}
+              </span>
+              <span className="ml-2 w-0 h-0 border-t-8 border-b-8 border-l-8 border-t-transparent border-b-transparent border-l-[#7f2d3a]" />
+            </div>
+          )}
 
-            {/* Judul/NPC name (opsional) */}
-            <h3 className="font-bold text-base sm:text-lg md:text-xl mb-2 text-white/95 drop-shadow-[0_2px_0_rgba(0,0,0,0.4)]">
-              {currentQuest?.npcName || " "}
-            </h3>
+          {/* PANEL dialog */}
+          <div className="relative z-10 w-full bg-black/65 border-2 border-white px-5 pt-8 pb-5 md:px-7 md:pt-10 md:pb-6 shadow-[0_0_0_4px_rgba(0,0,0,0.5)] overflow-visible">
+            {/* ornamen sudut */}
+            <span className="pointer-events-none absolute -top-2 -left-2 w-5 h-5 border-t-2 border-l-2 border-white z-0" />
+            <span className="pointer-events-none absolute -top-2 -right-2 w-5 h-5 border-t-2 border-r-2 border-white z-0" />
+            <span className="pointer-events-none absolute -bottom-2 -left-2 w-5 h-5 border-b-2 border-l-2 border-white z-0" />
+            <span className="pointer-events-none absolute -bottom-2 -right-2 w-5 h-5 border-b-2 border-r-2 border-white z-0" />
 
-            {/* Isi dialog */}
+            {/* isi dialog (TYPEWRITER) */}
             <p className="text-white/95 text-sm sm:text-base leading-relaxed tracking-wide [text-shadow:0_2px_0_rgba(0,0,0,0.35)]">
-              {dialogText}
+              {typed}
             </p>
 
-            {/* Objective (hanya saat quest) */}
-            {!!currentQuest?.objective && (
+            {/* Objective: hanya saat HINT & belum completed */}
+            {showObjectiveBox && (
               <div className="mt-3 p-3 border border-white/30 bg-white/5 text-white/90">
                 <p className="text-xs font-semibold mb-1 text-white/80">
                   Your Objective:
                 </p>
-                <p className="text-xs">{currentQuest.objective}</p>
+                <p className="text-xs">{currentQuest!.objective}</p>
               </div>
             )}
 
-            {/* Tombol aksi */}
             <div className="mt-3 md:mt-4 flex gap-2 justify-end">
               <button
                 onClick={handleClose}
@@ -102,7 +143,8 @@ const QuestDialog = () => {
                 Got it!
               </button>
 
-              {isQuestDialog && (
+              {/* Code Here: sembunyikan saat quest completed */}
+              {showCodeHereBtn && (
                 <button
                   onClick={handleOpenEditor}
                   className="px-4 py-2 text-sm font-medium border-2 border-white text-black bg-white hover:bg-white/90 transition"
@@ -114,7 +156,7 @@ const QuestDialog = () => {
           </div>
         </div>
 
-        {/* Player portrait (kanan, dibalik supaya menghadap NPC) */}
+        {/* Player portrait (kanan) */}
         <img
           src={PLAYER_PORTRAIT}
           alt="Player"

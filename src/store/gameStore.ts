@@ -21,6 +21,7 @@ interface GameState {
   editorFocused: boolean;
   codeOutput: string;
   codeError: string | null;
+  npcInteractCount: number;
 
   setCurrentLevel: (level: number) => void;
   setCurrentQuest: (quest: Quest | null) => void;
@@ -33,6 +34,8 @@ interface GameState {
   setCodeError: (error: string | null) => void;
   completeQuest: () => void;
   nextLevel: () => void;
+  resetNpcInteract: () => void;
+  bumpNpcInteract: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -46,8 +49,16 @@ export const useGameStore = create<GameState>((set) => ({
   codeOutput: "",
   codeError: null,
 
+  // NEW: init counter
+  npcInteractCount: 0,
+
   setCurrentLevel: (level) => set({ currentLevel: level }),
-  setCurrentQuest: (quest) => set({ currentQuest: quest }),
+  setCurrentQuest: (quest) =>
+    set({
+      currentQuest: quest,
+      // kalau mulai quest baru → reset hitungan ngobrol
+      npcInteractCount: quest ? 1 : 0,
+    }),
   setShowDialog: (show) => set({ showDialog: show }),
   setDialogText: (text) => set({ dialogText: text }),
   setDoorOpen: (open) => set({ doorOpen: open }),
@@ -69,5 +80,9 @@ export const useGameStore = create<GameState>((set) => ({
       doorOpen: false,
       codeOutput: "",
       codeError: null,
+      npcInteractCount: 0,
     })),
+  resetNpcInteract: () => set({ npcInteractCount: 0 }),
+  bumpNpcInteract: () =>
+    set((s) => ({ npcInteractCount: s.npcInteractCount + 1 })),
 }));
