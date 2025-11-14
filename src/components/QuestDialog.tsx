@@ -32,6 +32,7 @@ const QuestDialog = () => {
 
   // === Typewriter State ===
   const [typed, setTyped] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   // Jika text panjang & muncul lagi cepat, pakai speed cepat
@@ -48,6 +49,7 @@ const QuestDialog = () => {
 
     // reset typewriter
     setTyped("");
+    setIsTyping(true);
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
@@ -56,23 +58,57 @@ const QuestDialog = () => {
     const text =
       typeof dialogText === "string" ? dialogText : String(dialogText ?? "");
     let i = 0;
-    timerRef.current = window.setInterval(() => {
-      i++;
-      setTyped(text.slice(0, i));
-      if (i >= text.length && timerRef.current) {
-        window.clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }, speed) as unknown as number;
-
+    if (text.length === 0) {
+      setIsTyping(false);
+    } else {
+      timerRef.current = window.setInterval(() => {
+        i++;
+        setTyped(text.slice(0, i));
+        if (i >= text.length && timerRef.current) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
+          setIsTyping(false);
+        }
+      }, speed) as unknown as number;
+    }
     return () => {
       document.body.style.overflow = prev;
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      setIsTyping(false);
     };
   }, [showDialog, dialogText, speed]);
+
+  // Deteksi tekan Enter sekali = skip dialog, kedua = close
+  useEffect(() => {
+    if (!showDialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+
+      const text =
+        typeof dialogText === "string" ? dialogText : String(dialogText ?? "");
+      // Jika masih ngetik, langsung selesaikan
+      if (isTyping) {
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setTyped(text);
+        setIsTyping(false);
+      } else {
+        // Sudah selesai ngetik, tutup dialog
+        setShowDialog(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showDialog, isTyping, dialogText, setShowDialog]);
 
   // CUKUP cek showDialog agar "Welcome to Level X" tetap muncul
   if (!showDialog) return null;
